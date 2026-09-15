@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hóa Đơn Bán Hàng - Phương Thảo Gift</title>
+    
+    <!-- PWA MANIFEST & META TAGS -->
+    <meta name="theme-color" content="#7A1C1C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Phương Thảo Gift">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22short_name%22%3A%22PT%20Gift%22%2C%22name%22%3A%22Ph%C6%B0%C6%A1ng%20Th%E1%BA%A3o%20Gift%20-%20Qu%E1%BA%A3n%20L%C3%BD%20H%C3%B3a%20%C4%90%C6%A1n%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Butf8%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%3E%3Crect%20width%3D'512'%20height%3D'512'%20rx%3D'100'%20fill%3D'%237A1C1C'%2F%3E%3Ctext%20x%3D'50%25'%20y%3D'55%25'%20dominant-baseline%3D'middle'%20text-anchor%3D'middle'%20font-family%3D'sans-serif'%20font-weight%3D'bold'%20font-size%3D'220'%20fill%3D'%23D4AF37'%3EPT%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%237A1C1C%22%2C%22theme_color%22%3A%22%237A1C1C%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%7D">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%237A1C1C'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='220' fill='%23D4AF37'>PT</text></svg>">
+
+    <!-- Import html2pdf.js & html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #7A1C1C;
+            --accent-color: #D4AF37;
+            --bg-color: #e9ecef;
+            --text-color: #212529;
+            --border-color: #ced4da;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px 10px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* THANH CÔNG CỤ CẢI TIẾN (LƯỚI 2 HÀNG + NÚT XUỐNG DÒNG DƯỚI CÙNG) */
+        .top-bar {
+            max-width: 210mm;
+            margin: 0 auto 15px auto;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-align: center;
+        }
+
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-add { background-color: var(--primary-color); color: #fff; }
+        .btn-add:hover:not(:disabled) { background-color: #5c1414; }
+        .btn-pdf { background-color: #276749; color: #fff; }
+        .btn-pdf:hover:not(:disabled) { background-color: #1c4933; }
+        .btn-img { background-color: #d97706; color: #fff; }
+        .btn-img:hover:not(:disabled) { background-color: #b45309; }
+        .btn-print { background-color: #2b6cb0; color: #fff; }
+        .btn-print:hover:not(:disabled) { background-color: #1a4971; }
+        .btn-manage { background-color: #4f46e5; color: #fff; }
+        .btn-manage:hover:not(:disabled) { background-color: #4338ca; }
+        .btn-draft-save { background-color: #0891b2; color: #fff; }
+        .btn-draft-save:hover:not(:disabled) { background-color: #0e7490; }
+        .btn-draft-list { background-color: #475569; color: #fff; }
+        .btn-draft-list:hover:not(:disabled) { background-color: #334155; }
+
+        /* Nút Xuống dòng thiết kế nổi bật đặt dưới cùng */
+        .btn-newline {
+            grid-column: 1 / -1;
+            background-color: var(--primary-color);
+            color: #fff;
+            font-size: 0.95rem;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(122, 28, 28, 0.25);
+        }
+
+        /* KHUNG TỜ GIẤY A4 */
+        .a4-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: #fff;
+            padding: 10mm 10mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        /* HEADER HÓA ĐƠN */
+        .invoice-header {
+            text-align: center;
+            border-bottom: 3px double var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .brand-name {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--primary-color);
+            font-size: 24pt;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .brand-subtitle {
+            color: #B8860B;
+            font-size: 9.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .invoice-title {
+            font-size: 16pt;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        /* THÔNG TIN KHÁCH HÀNG */
+        .customer-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 20px;
+            margin-bottom: 12px;
+            font-size: 9.5pt;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .info-item span.lbl {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .info-item input {
+            border: none;
+            border-bottom: 1px dotted #888;
+            padding: 2px 4px;
+            width: 100%;
+            font-size: 9.5pt;
+            outline: none;
+            background: transparent;
+            text-align: left;
+        }
+
+        /* BẢNG HÓA ĐƠN */
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            table-layout: fixed;
+        }
+
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #b0b0b0;
+            padding: 5px 3px;
+            font-size: 9pt;
+            vertical-align: middle;
+            word-wrap: break-word;
+            text-align: center;
+        }
+
+        .invoice-table th {
+            background-color: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            font-weight: 600;
+            padding: 7px 3px;
+        }
+
+        tfoot {
+            display: table-row-group !important;
+        }
+
+        .col-stt { width: 32px; text-align: center; }
+        .col-code { width: 95px; }
+        .col-qty { width: 50px; }
+        .col-price { width: 95px; }
+        .col-total { width: 105px; font-weight: 700; }
+        .col-img { width: 100px; text-align: center; padding: 2px !important; }
+        .col-note { width: 140px; }
+        .col-action { width: 30px; text-align: center; }
+
+        .cell-input {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 4px;
+            font-size: 9pt;
+            outline: none;
+            background: #fff;
+            text-align: center;
+        }
+
+        .cell-input:focus {
+            border-color: var(--primary-color);
+            background: #fffdf5;
+        }
+
+        .text-center { text-align: center !important; }
+        .text-right { text-align: right !important; }
+        .text-left { text-align: left !important; }
+        .font-bold { font-weight: 700; }
+
+        .img-upload-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .product-thumb {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            display: block;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+
+        .upload-hint {
+            font-size: 7pt;
+            color: #666;
+            margin-top: 2px;
+            text-align: center;
+            display: block;
+        }
+
+        .table-footer td {
+            font-weight: 600;
+            background-color: #fafafa;
+            padding: 6px 8px;
+        }
+
+        .discount-row td {
+            background-color: #fffbf0;
+        }
+
+        .discount-input {
+            width: 38px;
+            text-align: center;
+            padding: 1px 2px;
+            font-weight: bold;
+            color: #b91c1c;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .grand-total-row td {
+            font-size: 10pt;
+            color: var(--primary-color);
+            background-color: #fff8f8;
+        }
+
+        .btn-del {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 4px 7px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
+        .invoice-footer { 
+            margin-top: 15px; 
+            page-break-inside: avoid;
+        }
+
+        .signature-container {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 9.5pt;
+        }
+
+        .signature-box { width: 45%; }
+        .signature-space { height: 60px; }
+
+        .thank-you-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-style: italic;
+            font-size: 9pt;
+            color: #555;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+
+        /* MODAL CHUNG */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 95%;
+            max-width: 920px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-body-layout {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .modal-left-col {
+            width: 310px;
+            flex-shrink: 0;
+            border-right: 1px solid #e2e8f0;
+            padding-right: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-right-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; }
+
+        .product-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            overflow-y: auto;
+            flex: 1;
+            padding: 5px 2px;
+            margin-top: 10px;
+        }
+
+        .product-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-card img {
+            width: 65px;
+            height: 65px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            margin-bottom: 5px;
+        }
+
+        .product-card .card-code {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .product-card .card-price {
+            font-size: 0.8rem;
+            color: #4a5568;
+            margin: 3px 0 6px 0;
+            font-weight: 500;
+        }
+
+        .product-card .card-actions {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .product-card .card-actions button {
+            flex: 1;
+            padding: 3px 0;
+            font-size: 0.75rem;
+            justify-content: center;
+        }
+
+        .draft-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .draft-list-table th, .draft-list-table td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        .draft-list-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .modal-body-layout {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+            .modal-left-col {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                padding-right: 0;
+                padding-bottom: 15px;
+            }
+            .modal-right-col {
+                padding-left: 0;
+                margin-top: 10px;
+            }
+        }
+
+        /* CHẾ ĐỘ IN VÀ XUẤT PDF / ẢNH */
+        .is-exporting .col-action,
+        .is-exporting .btn-del,
+        .is-exporting .upload-hint,
+        .is-exporting input[type="file"] {
+            display: none !important;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            html, body { 
+                background: #fff !important; 
+                padding: 0 !important; 
+                margin: 0 !important;
+                width: 210mm !important;
+            }
+
+            .a4-wrapper {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 210mm !important;
+            }
+
+            .a4-page { 
+                background: #fff !important; 
+                padding: 10mm 10mm !important; 
+                margin: 0 auto !important;
+                width: 210mm !important;
+                box-sizing: border-box !important;
+                box-shadow: none !important;
+            }
+
+            .top-bar, #syncStatus, .col-action, .btn-del, .upload-hint, input[type="file"] { 
+                display: none !important; 
+            }
+
+            tr { 
+                page-break-inside: avoid !important; 
+            }
+
+            tfoot {
+                display: table-row-group !important;
+            }
+
+            input {
+                border: none !important;
+                background: transparent !important;
+                outline: none !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- THANH CÔNG CỤ -->
+<div class="top-bar">
+    <div class="toolbar-grid">
+        <!-- Hàng 1 -->
+        <button class="btn btn-manage" onclick="openProductModal()">📦 Kho Mã Hàng</button>
+        <button class="btn btn-draft-save" onclick="saveDraftInvoice()">💾 Lưu Nháp</button>
+        <button class="btn btn-draft-list" onclick="openDraftModal()">📂 Đơn Nháp (<span id="draftCountBadge">0</span>)</button>
+
+        <!-- Hàng 2 -->
+        <button class="btn btn-print" onclick="printInvoice()">🖨️ In Hóa Đơn</button>
+        <button class="btn btn-pdf" id="btnPdf" onclick="exportPDF()">📄 Xuất PDF</button>
+        <button class="btn btn-img" id="btnImg" onclick="exportImage()">📸 Chụp Ảnh</button>
+
+        <!-- Nút Xuống dòng đặt dưới cùng -->
+        <button class="btn btn-add btn-newline" onclick="addNewRow()">↵ Xuống Dòng (Thêm Dòng)</button>
+    </div>
+</div>
+<div id="syncStatus" style="max-width: 210mm; margin: -10px auto 10px auto; font-size: 0.85rem; color: #15803d; text-align: right;">☁️ Đang kết nối hệ thống đám mây...</div>
+
+<datalist id="productList"></datalist>
+
+<!-- MODAL QUẢN LÝ MÃ HÀNG KHO -->
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3 id="modalTitle" style="margin: 0; color: var(--primary-color);">📦 Quản Lý & Thêm Mã Hàng Đám Mây</h3>
+            <button class="btn" style="background: transparent; color: #666; font-size: 1.2rem; padding: 0 5px;" onclick="closeProductModal()">✕</button>
+        </div>
+
+        <div class="modal-body-layout">
+            <div class="modal-left-col" id="productFormSection">
+                <strong style="font-size: 0.9rem; color: #333; margin-bottom: 10px; display: block;">Thêm / Chỉnh Sửa Mã</strong>
+                <div class="form-group">
+                    <label>Mã Hàng:</label>
+                    <input type="text" id="newCode" placeholder="Ví dụ: PT70, PT54...">
+                </div>
+                <div class="form-group">
+                    <label>Đơn Giá (đ):</label>
+                    <input type="number" id="newPrice" placeholder="Ví dụ: 150000">
+                </div>
+                <div class="form-group">
+                    <label>Hình Ảnh Sản Phẩm (Tùy chọn):</label>
+                    <input type="file" id="newImageFile" accept="image/*">
+                </div>
+                <div id="saveStatusMsg" style="font-size: 0.85rem; margin-bottom: 8px; font-weight: bold; color: #b91c1c; display: none;"></div>
+                <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 10px;">
+                    <button class="btn" style="background: #e2e8f0; color: #333; flex: 1; justify-content: center;" onclick="resetProductForm()">Làm mới</button>
+                    <button class="btn btn-add" id="btnSaveCloud" style="flex: 1.5; justify-content: center;" onclick="saveNewProductToCloud()">💾 Lưu Đám Mây</button>
+                </div>
+            </div>
+
+            <div class="modal-right-col">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span id="productCountBadge" style="font-size: 0.85rem; font-weight: bold; color: #4a5568;">📦 Tổng số: 0 mã hàng</span>
+                    <input type="text" id="searchProductInput" placeholder="🔍 Tìm kiếm mã..." oninput="filterProductList()" style="width: 150px; padding: 5px 8px; font-size: 0.85rem; border: 1px solid #ccc; border-radius: 4px; outline: none;">
+                </div>
+
+                <div id="productGrid" class="product-card-grid"></div>
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee;">
+            <button class="btn" style="background: #4A5568; color: #fff;" onclick="closeProductModal()">Đóng cửa sổ</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL QUẢN LÝ ĐƠN NHÁP -->
+<div id="draftModal" class="modal">
+    <div class="modal-content" style="max-width: 750px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <h3 style="margin: 0; color: var(--primary-color);">📂 Danh Sách Hóa Đơn Nháp Tạm Lưu</h3>
+            <button class="btn" style="background: transparent; color: #666; font-size: 1.2rem; padding: 0 5px;" onclick="closeDraftModal()">✕</button>
+        </div>
+
+        <div style="overflow-y: auto; max-height: 60vh; margin-top: 10px;">
+            <table class="draft-list-table">
+                <thead>
+                    <tr>
+                        <th style="width: 110px;">Mã Đơn</th>
+                        <th>Khách Hàng</th>
+                        <th style="width: 120px;">Cập Nhật</th>
+                        <th style="width: 110px;">Tổng Tiền</th>
+                        <th style="width: 120px; text-align: center;">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="draftTableBody">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
+            <button class="btn" style="background: #4A5568; color: #fff;" onclick="closeDraftModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div class="a4-wrapper">
+    <div class="a4-page" id="invoiceArea">
+        <div>
+            <div class="invoice-header">
+                <div class="brand-name">PHƯƠNG THẢO GIFT</div>
+                <div class="brand-subtitle">Quà Tặng Doanh Nghiệp & GIỎ QUÀ TẾT</div>
+                <div class="invoice-title">HÓA ĐƠN BÁN HÀNG</div>
+            </div>
+
+            <div class="customer-info-grid">
+                <div class="info-item">
+                    <span class="lbl">Khách hàng:</span>
+                    <input type="text" id="txtCustomerName" placeholder="Nhập tên khách hàng / đơn vị...">
+                </div>
+                <div class="info-item">
+                    <span class="lbl">Ngày lập:</span>
+                    <input type="text" id="lblDate" class="text-center">
+                </div>
+                <div class="info-item">
+                    <span class="lbl">Điện thoại:</span>
+                    <input type="text" id="txtCustomerPhone" placeholder="Nhập số điện thoại...">
+                </div>
+                <div class="info-item">
+                    <span class="lbl">Mã hóa đơn:</span>
+                    <input type="text" id="lblInvNo" class="font-bold text-center">
+                </div>
+                <div class="info-item" style="grid-column: span 2;">
+                    <span class="lbl">Địa chỉ:</span>
+                    <input type="text" id="txtCustomerAddress" placeholder="Nhập địa chỉ giao hàng...">
+                </div>
+            </div>
+
+            <table class="invoice-table" id="invoiceTable">
+                <thead>
+                    <tr>
+                        <th class="col-stt">STT</th>
+                        <th class="col-code">Mã Hàng</th>
+                        <th class="col-qty">SL</th>
+                        <th class="col-price">Đơn Giá</th>
+                        <th class="col-total">Thành Tiền</th>
+                        <th class="col-img">Hình Ảnh</th>
+                        <th class="col-note">Ghi Chú</th>
+                        <th class="col-action"></th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceTableBody"></tbody>
+                <tfoot>
+                    <tr class="table-footer">
+                        <td colspan="2" class="text-right font-bold">Tổng số lượng:</td>
+                        <td id="totalQtyDisplay" class="text-center font-bold">0</td>
+                        <td colspan="5"></td>
+                    </tr>
+                    <tr class="table-footer">
+                        <td colspan="4" class="text-right font-bold">Tổng tiền hàng:</td>
+                        <td id="subTotalDisplay" class="text-center font-bold">0 đ</td>
+                        <td colspan="3"></td>
+                    </tr>
+                    <tr class="table-footer discount-row">
+                        <td colspan="4" class="text-right font-bold">Chiết khấu (<input type="number" id="discountPercent" class="discount-input" value="0" min="0" max="100" oninput="calculateGrandTotal()">%):</td>
+                        <td id="discountAmountDisplay" class="text-center font-bold" style="color: #b91c1c;">- 0 đ</td>
+                        <td colspan="3"></td>
+                    </tr>
+                    <tr class="table-footer grand-total-row">
+                        <td colspan="4" class="text-right font-bold">TỔNG TIỀN THANH TOÁN:</td>
+                        <td id="grandTotalDisplay" class="text-center font-bold">0 đ</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="invoice-footer">
+            <div class="signature-container">
+                <div class="signature-box">
+                    <strong>Người Mua Hàng</strong><br>
+                    <i>(Ký, ghi rõ họ tên)</i>
+                    <div class="signature-space"></div>
+                </div>
+                <div class="signature-box">
+                    <strong>Đại Diện Phương Thảo Gift</strong><br>
+                    <i>(Ký, ghi rõ họ tên)</i>
+                    <div class="signature-space"></div>
+                </div>
+            </div>
+            <div class="thank-you-msg">
+                Cảm ơn Quý khách đã tin tưởng và lựa chọn sản phẩm tại Phương Thảo Gift!
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* PWA SERVICE WORKER REGISTRATION (INLINE BLOB URL) */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `
+                const CACHE_NAME = 'ptgift-pwa-v1';
+                const ASSETS_TO_CACHE = [
+                    './',
+                    'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+                    'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap',
+                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
+                ];
+
+                self.addEventListener('install', (event) => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+                    );
+                    self.skipWaiting();
+                });
+
+                self.addEventListener('activate', (event) => {
+                    event.waitUntil(
+                        caches.keys().then((keys) => {
+                            return Promise.all(
+                                keys.map((key) => {
+                                    if (key !== CACHE_NAME) return caches.delete(key);
+                                })
+                            );
+                        })
+                    );
+                    self.clients.claim();
+                });
+
+                self.addEventListener('fetch', (event) => {
+                    event.respondWith(
+                        caches.match(event.request).then((cachedResponse) => {
+                            return cachedResponse || fetch(event.request);
+                        })
+                    );
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            const blobURL = URL.createObjectURL(blob);
+
+            navigator.serviceWorker.register(blobURL)
+                .then(reg => console.log('✅ PWA Service Worker sẵn sàng:', reg.scope))
+                .catch(err => console.log('⚠️ Đăng ký PWA SW:', err.message));
+        });
+    }
+
+    const firebaseConfig = {
+        databaseURL: "https://minagift-invoice-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const rtdb = firebase.database();
+
+    const DEFAULT_SVG_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23f8f9fa'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='10' fill='%23cccccc'>Phương Thảo Gift</text></svg>";
+
+    let dbProducts = [];
+    let dbDrafts = [];
+
+    document.getElementById('lblDate').value = new Date().toLocaleDateString('vi-VN');
+    document.getElementById('lblInvNo').value = 'PT' + Math.floor(100000 + Math.random() * 900000);
+
+    function formatImageUrl(url) {
+        if (!url) return '';
+        url = url.trim();
+        if (url.startsWith('data:')) return url;
+
+        const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (driveMatch && driveMatch[1]) {
+            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+        }
+        return url;
+    }
+
+    function initCloudSync() {
+        // Đồng bộ danh sách mã hàng
+        rtdb.ref('products').on('value', (snapshot) => {
+            const data = snapshot.val();
+            dbProducts = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    dbProducts.push(data[key]);
+                });
+            }
+            populateDatalist();
+            renderManageTable(dbProducts);
+            document.getElementById('syncStatus').innerText = `✅ Đã đồng bộ đám mây (${dbProducts.length} mã hàng sẵn sàng)`;
+        }, (error) => {
+            console.error(error);
+            document.getElementById('syncStatus').innerText = '⚠️ Mất kết nối đám mây! (Kiểm tra lại mạng hoặc Rules Firebase)';
+        });
+
+        // Đồng bộ danh sách đơn nháp trên tất cả thiết bị
+        rtdb.ref('drafts').on('value', (snapshot) => {
+            const data = snapshot.val();
+            dbDrafts = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    dbDrafts.push(data[key]);
+                });
+            }
+            dbDrafts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            updateDraftBadge();
+            if (document.getElementById('draftModal').style.display === 'flex') {
+                renderDraftTable();
+            }
+        }, (error) => {
+            console.error('Lỗi đồng bộ đơn nháp:', error);
+        });
+    }
+
+    function openProductModal() {
+        document.getElementById('productModal').style.display = 'flex';
+        resetProductForm();
+    }
+
+    function closeProductModal() {
+        document.getElementById('productModal').style.display = 'none';
+    }
+
+    function resetProductForm() {
+        document.getElementById('newCode').value = '';
+        document.getElementById('newPrice').value = '';
+        document.getElementById('newImageFile').value = '';
+        document.getElementById('newCode').disabled = false;
+        document.getElementById('modalTitle').innerText = "📦 Quản Lý & Thêm Mã Hàng Đám Mây";
+        document.getElementById('saveStatusMsg').style.display = 'none';
+    }
+
+    function compressImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 1200;
+                if (width > height && width > maxDim) {
+                    height *= maxDim / width;
+                    width = maxDim;
+                } else if (height > maxDim) {
+                    width *= maxDim / height;
+                    height = maxDim;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', 0.95));
+            };
+            img.onerror = function () {
+                alert('Tệp ảnh không hợp lệ hoặc bị lỗi! Vui lòng chọn lại file ảnh khác.');
+            };
+            img.src = e.result || e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveNewProductToCloud() {
+        const codeInput = document.getElementById('newCode');
+        const code = codeInput.value.trim();
+        const price = parseFloat(document.getElementById('newPrice').value) || 0;
+        const fileInput = document.getElementById('newImageFile');
+        const statusMsg = document.getElementById('saveStatusMsg');
+        const btnSave = document.getElementById('btnSaveCloud');
+
+        if (!code) {
+            statusMsg.innerText = 'Vui lòng nhập mã hàng!';
+            statusMsg.style.display = 'block';
+            codeInput.focus();
+            return;
+        }
+
+        btnSave.disabled = true;
+        statusMsg.style.display = 'block';
+        statusMsg.style.color = '#2b6cb0';
+        statusMsg.innerText = '⏳ Đang lưu lên đám mây...';
+
+        const proceedSave = (imageUrl) => {
+            const productData = {
+                code: code,
+                price: price,
+                image: imageUrl || DEFAULT_SVG_IMAGE
+            };
+
+            const safeKey = code.replace(/[.#$[\]]/g, '_');
+            rtdb.ref('products/' + safeKey).set(productData)
+                .then(() => {
+                    alert('Đã lưu thành công mã hàng "' + code + '" lên hệ thống chung!');
+                    resetProductForm();
+                    btnSave.disabled = false;
+                })
+                .catch((error) => {
+                    statusMsg.style.color = '#b91c1c';
+                    statusMsg.innerText = 'Lỗi lưu đám mây: ' + error.message;
+                    btnSave.disabled = false;
+                });
+        };
+
+        if (fileInput.files && fileInput.files[0]) {
+            compressImage(fileInput.files[0], function(compressedDataUrl) {
+                proceedSave(compressedDataUrl);
+            });
+        } else {
+            const safeKey = code.replace(/[.#$[\]]/g, '_');
+            rtdb.ref('products/' + safeKey).once('value', (snapshot) => {
+                const existing = snapshot.val();
+                const oldImage = existing ? existing.image : DEFAULT_SVG_IMAGE;
+                proceedSave(oldImage);
+            }, (error) => {
+                proceedSave(DEFAULT_SVG_IMAGE);
+            });
+        }
+    }
+
+    function renderManageTable(products) {
+        const grid = document.getElementById('productGrid');
+        const countBadge = document.getElementById('productCountBadge');
+        if (countBadge) countBadge.innerText = `📦 Tổng số: ${products.length} mã hàng`;
+
+        grid.innerHTML = '';
+
+        if (products.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1 / -1; color: #777; padding: 30px; text-align: center;">Chưa có mã hàng nào trên hệ thống.</div>`;
+            return;
+        }
+
+        products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.innerHTML = `
+                <img src="${formatImageUrl(p.image) || DEFAULT_SVG_IMAGE}" alt="${p.code}">
+                <div class="card-code">${p.code}</div>
+                <div class="card-price">${new Intl.NumberFormat('vi-VN').format(p.price)} đ</div>
+                <div class="card-actions">
+                    <button class="btn" style="padding: 2px 5px; font-size: 0.75rem; background: #2b6cb0; color: #fff;" onclick="editProduct('${p.code}', ${p.price})">Sửa</button>
+                    <button class="btn" style="padding: 2px 5px; font-size: 0.75rem; background: #e53e3e; color: #fff;" onclick="deleteProduct('${p.code}')">Xóa</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function editProduct(code, price) {
+        document.getElementById('newCode').value = code;
+        document.getElementById('newCode').disabled = true;
+        document.getElementById('newPrice').value = price;
+        document.getElementById('newImageFile').value = '';
+        document.getElementById('modalTitle').innerText = `Đang chỉnh sửa mã: ${code}`;
+        document.getElementById('newPrice').focus();
+    }
+
+    function deleteProduct(code) {
+        if (confirm(`Bạn có chắc chắn muốn xóa mã hàng "${code}" khỏi hệ thống chung không?`)) {
+            const safeKey = code.replace(/[.#$[\]]/g, '_');
+            rtdb.ref('products/' + safeKey).remove().then(() => {
+                alert('Đã xóa thành công!');
+            }).catch(err => {
+                alert('Lỗi khi xóa: ' + err.message);
+            });
+        }
+    }
+
+    function filterProductList() {
+        const keyword = document.getElementById('searchProductInput').value.toLowerCase();
+        const filtered = dbProducts.filter(p => p.code.toLowerCase().includes(keyword));
+        renderManageTable(filtered);
+    }
+
+    function populateDatalist() {
+        const datalist = document.getElementById('productList');
+        datalist.innerHTML = '';
+        dbProducts.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.code;
+            opt.label = `${new Intl.NumberFormat('vi-VN').format(p.price)} đ - ${p.code}`;
+            datalist.appendChild(opt);
+        });
+    }
+
+    function addNewRow(data = null) {
+        const tbody = document.getElementById('invoiceTableBody');
+        const rowCount = tbody.children.length;
+        const tr = document.createElement('tr');
+
+        const codeVal = data ? data.code : '';
+        const qtyVal = data ? data.qty : 1;
+        const priceVal = data ? data.price : '';
+        const noteVal = data ? data.note : '';
+        const imgVal = data ? data.image : DEFAULT_SVG_IMAGE;
+
+        tr.innerHTML = `
+            <td class="col-stt text-center stt-cell">${rowCount + 1}</td>
+            <td class="col-code">
+                <input list="productList" class="cell-input code-input font-bold text-center" value="${codeVal}" placeholder="Mã hàng..." oninput="onCodeInput(this)">
+            </td>
+            <td class="col-qty">
+                <input type="number" class="cell-input qty-input text-center" value="${qtyVal}" min="1" oninput="calculateRow(this)">
+            </td>
+            <td class="col-price">
+                <input type="number" class="cell-input price-input text-center" value="${priceVal}" placeholder="0" oninput="calculateRow(this)">
+            </td>
+            <td class="col-total text-center font-bold total-cell" data-value="0">0 đ</td>
+            <td class="col-img">
+                <div class="img-upload-container" onclick="triggerFileInput(this)">
+                    <img src="${imgVal}" class="product-thumb" alt="Ảnh sản phẩm">
+                    <span class="upload-hint">📷 Chọn ảnh</span>
+                    <input type="file" accept="image/*" style="display:none !important;" onchange="handleImageUpload(this)">
+                </div>
+            </td>
+            <td class="col-note">
+                <input type="text" class="cell-input note-input text-center" value="${noteVal}" placeholder="Ghi chú...">
+            </td>
+            <td class="col-action">
+                <button class="btn-del" onclick="deleteRow(this)">X</button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+        updateSTT();
+        calculateRow(tr.querySelector('.qty-input'));
+    }
+
+    function triggerFileInput(container) {
+        const fileInput = container.querySelector('input[type="file"]');
+        if (fileInput) fileInput.click();
+    }
+
+    function handleImageUpload(inputEl) {
+        const file = inputEl.files[0];
+        if (file) {
+            compressImage(file, function(compressedDataUrl) {
+                const container = inputEl.closest('.img-upload-container');
+                const imgEl = container.querySelector('.product-thumb');
+                imgEl.src = compressedDataUrl;
+            });
+        }
+    }
+
+    function onCodeInput(inputEl) {
+        const tr = inputEl.closest('tr');
+        const code = inputEl.value.trim();
+        const found = dbProducts.find(p => p.code.toLowerCase() === code.toLowerCase());
+
+        if (found) {
+            tr.querySelector('.price-input').value = found.price;
+            const imgEl = tr.querySelector('.product-thumb');
+            imgEl.src = found.image ? formatImageUrl(found.image) : DEFAULT_SVG_IMAGE;
+        }
+        calculateRow(inputEl);
+    }
+
+    function calculateRow(inputEl) {
+        if (!inputEl) return;
+        const tr = inputEl.closest('tr');
+        if (!tr) return;
+        const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+        const price = parseFloat(tr.querySelector('.price-input').value) || 0;
+        const total = qty * price;
+
+        tr.querySelector('.total-cell').innerText = formatMoney(total);
+        tr.querySelector('.total-cell').dataset.value = total;
+
+        calculateGrandTotal();
+    }
+
+    function calculateGrandTotal() {
+        let totalQty = 0;
+        let subTotal = 0;
+
+        document.querySelectorAll('#invoiceTableBody tr').forEach(tr => {
+            const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+            const total = parseFloat(tr.querySelector('.total-cell').dataset.value) || 0;
+            totalQty += qty;
+            subTotal += total;
+        });
+
+        const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+        const discountAmount = Math.round(subTotal * (discountPercent / 100));
+        const grandTotal = subTotal - discountAmount;
+
+        document.getElementById('totalQtyDisplay').innerText = totalQty;
+        document.getElementById('subTotalDisplay').innerText = formatMoney(subTotal);
+        document.getElementById('discountAmountDisplay').innerText = '- ' + formatMoney(discountAmount);
+        document.getElementById('grandTotalDisplay').innerText = formatMoney(grandTotal);
+    }
+
+    function deleteRow(btn) {
+        const tr = btn.closest('tr');
+        tr.remove();
+        updateSTT();
+        calculateGrandTotal();
+    }
+
+    function updateSTT() {
+        document.querySelectorAll('#invoiceTableBody tr').forEach((tr, index) => {
+            tr.querySelector('.stt-cell').innerText = index + 1;
+        });
+    }
+
+    function formatMoney(amount) {
+        return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+    }
+
+    function updateDraftBadge() {
+        document.getElementById('draftCountBadge').innerText = dbDrafts.length;
+    }
+
+    function saveDraftInvoice() {
+        const invNo = document.getElementById('lblInvNo').value || 'PT_NHAP';
+        const customer = document.getElementById('txtCustomerName').value.trim() || 'Khách Lẻ';
+        const phone = document.getElementById('txtCustomerPhone').value.trim();
+        const address = document.getElementById('txtCustomerAddress').value.trim();
+        const date = document.getElementById('lblDate').value;
+        const discount = document.getElementById('discountPercent').value || 0;
+
+        const items = [];
+        document.querySelectorAll('#invoiceTableBody tr').forEach(tr => {
+            const code = tr.querySelector('.code-input').value.trim();
+            const qty = tr.querySelector('.qty-input').value;
+            const price = tr.querySelector('.price-input').value;
+            const note = tr.querySelector('.note-input').value;
+            const image = tr.querySelector('.product-thumb').src;
+            if (code || price) {
+                items.push({ code, qty, price, note, image });
+            }
+        });
+
+        const draftData = {
+            id: invNo,
+            customer,
+            phone,
+            address,
+            date,
+            discount,
+            items,
+            updatedAt: new Date().toLocaleString('vi-VN')
+        };
+
+        const safeKey = invNo.replace(/[.#$[\]]/g, '_');
+        rtdb.ref('drafts/' + safeKey).set(draftData)
+            .then(() => {
+                alert(`✅ Đã lưu nháp hóa đơn [${invNo}] của khách "${customer}" lên đám mây thành công!`);
+            })
+            .catch((error) => {
+                alert(`Lỗi lưu nháp đám mây: ` + error.message);
+            });
+    }
+
+    function renderDraftTable() {
+        const tbody = document.getElementById('draftTableBody');
+        tbody.innerHTML = '';
+
+        if (dbDrafts.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #777; padding: 20px;">Chưa có hóa đơn nháp nào trên hệ thống đám mây.</td></tr>`;
+        } else {
+            dbDrafts.forEach(d => {
+                let totalAmount = 0;
+                if (d.items) {
+                    d.items.forEach(it => {
+                        totalAmount += (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0);
+                    });
+                }
+                const discountAmt = totalAmount * ((parseFloat(d.discount) || 0) / 100);
+                const grandTotal = totalAmount - discountAmt;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${d.id}</strong></td>
+                    <td>${d.customer} ${d.phone ? ' - ' + d.phone : ''}</td>
+                    <td style="font-size: 0.8rem; color: #666;">${d.updatedAt}</td>
+                    <td style="font-weight: bold; color: var(--primary-color);">${formatMoney(grandTotal)}</td>
+                    <td style="text-align: center;">
+                        <button class="btn" style="padding: 3px 6px; font-size: 0.75rem; background: #276749; color: #fff;" onclick="loadDraft('${d.id}')">📂 Mở</button>
+                        <button class="btn" style="padding: 3px 6px; font-size: 0.75rem; background: #e53e3e; color: #fff;" onclick="deleteDraft('${d.id}')">✕ Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function openDraftModal() {
+        renderDraftTable();
+        document.getElementById('draftModal').style.display = 'flex';
+    }
+
+    function closeDraftModal() {
+        document.getElementById('draftModal').style.display = 'none';
+    }
+
+    function loadDraft(draftId) {
+        const draft = dbDrafts.find(d => d.id === draftId);
+        if (!draft) return;
+
+        document.getElementById('lblInvNo').value = draft.id;
+        document.getElementById('txtCustomerName').value = draft.customer || '';
+        document.getElementById('txtCustomerPhone').value = draft.phone || '';
+        document.getElementById('txtCustomerAddress').value = draft.address || '';
+        document.getElementById('lblDate').value = draft.date || new Date().toLocaleDateString('vi-VN');
+        document.getElementById('discountPercent').value = draft.discount || 0;
+
+        const tbody = document.getElementById('invoiceTableBody');
+        tbody.innerHTML = '';
+
+        if (draft.items && draft.items.length > 0) {
+            draft.items.forEach(item => addNewRow(item));
+        } else {
+            addNewRow();
+        }
+
+        closeDraftModal();
+        alert(`📂 Đã tải hóa đơn nháp [${draftId}]!`);
+    }
+
+    function deleteDraft(draftId) {
+        if (confirm(`Bạn có chắc muốn xóa hóa đơn nháp [${draftId}] khỏi đám mây?`)) {
+            const safeKey = draftId.replace(/[.#$[\]]/g, '_');
+            rtdb.ref('drafts/' + safeKey).remove()
+                .then(() => {
+                    alert('Đã xóa đơn nháp thành công!');
+                })
+                .catch((err) => {
+                    alert('Lỗi xóa đơn nháp: ' + err.message);
+                });
+        }
+    }
+
+    function prepareDOMForExport() {
+        const area = document.getElementById('invoiceArea');
+        area.classList.add('is-exporting');
+
+        const tbody = document.getElementById('invoiceTableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const hiddenRows = [];
+
+        rows.forEach(tr => {
+            const codeInput = tr.querySelector('.code-input');
+            if (codeInput && !codeInput.value.trim()) {
+                tr.style.display = 'none';
+                hiddenRows.push(tr);
+            }
+        });
+
+        const tfootRows = area.querySelectorAll('tfoot tr');
+        tfootRows.forEach(tr => {
+            const lastTd = tr.children[tr.children.length - 1];
+            if (lastTd && lastTd.hasAttribute('colspan')) {
+                const currentColspan = parseInt(lastTd.getAttribute('colspan'));
+                lastTd.dataset.oldColspan = currentColspan;
+                lastTd.setAttribute('colspan', currentColspan - 1);
+            }
+        });
+
+        const inputs = area.querySelectorAll('input');
+        const tempSpans = [];
+
+        inputs.forEach(input => {
+            if (input.type === 'file') return;
+            if (input.closest('tr') && input.closest('tr').style.display === 'none') return;
+
+            const span = document.createElement('span');
+            span.textContent = input.value || '';
+
+            if (input.classList.contains('text-center')) {
+                span.style.textAlign = 'center';
+            } else if (input.classList.contains('text-right')) {
+                span.style.textAlign = 'right';
+            } else {
+                span.style.textAlign = 'left';
+            }
+
+            if (input.classList.contains('font-bold')) span.style.fontWeight = 'bold';
+
+            if (input.classList.contains('discount-input')) {
+                span.style.display = 'inline';
+                span.style.fontWeight = 'bold';
+                span.style.color = '#b91c1c';
+                span.style.margin = '0 1px';
+            } else {
+                span.style.display = 'inline-block';
+                span.style.width = '100%';
+                span.style.fontSize = '9pt';
+            }
+
+            input.style.display = 'none';
+            input.parentNode.insertBefore(span, input);
+            tempSpans.push({ input, span });
+        });
+
+        let printStt = 1;
+        rows.forEach(tr => {
+            if (tr.style.display !== 'none') {
+                const sttCell = tr.querySelector('.stt-cell');
+                if (sttCell) {
+                    sttCell.dataset.oldStt = sttCell.innerText;
+                    sttCell.innerText = printStt++;
+                }
+            }
+        });
+
+        return { hiddenRows, tempSpans, rows };
+    }
+
+    function restoreDOMAfterExport(state) {
+        const area = document.getElementById('invoiceArea');
+        area.classList.remove('is-exporting');
+
+        const tfootRows = area.querySelectorAll('tfoot tr');
+        tfootRows.forEach(tr => {
+            const lastTd = tr.children[tr.children.length - 1];
+            if (lastTd && lastTd.dataset.oldColspan) {
+                lastTd.setAttribute('colspan', lastTd.dataset.oldColspan);
+                delete lastTd.dataset.oldColspan;
+            }
+        });
+
+        if (!state) return;
+        state.tempSpans.forEach(item => {
+            item.input.style.display = '';
+            item.span.remove();
+        });
+        state.hiddenRows.forEach(tr => {
+            tr.style.display = '';
+        });
+        state.rows.forEach(tr => {
+            const sttCell = tr.querySelector('.stt-cell');
+            if (sttCell && sttCell.dataset.oldStt) {
+                sttCell.innerText = sttCell.dataset.oldStt;
+            }
+        });
+    }
+
+    function printInvoice() {
+        const tbody = document.getElementById('invoiceTableBody');
+        if (tbody.querySelectorAll('tr').length === 0) {
+            alert('Vui lòng thêm sản phẩm trước khi in!');
+            return;
+        }
+
+        const state = prepareDOMForExport();
+        window.print();
+        setTimeout(() => restoreDOMAfterExport(state), 500);
+    }
+
+    async function exportImage() {
+        const tbody = document.getElementById('invoiceTableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(tr => tr.style.display !== 'none');
+
+        if (rows.length === 0) {
+            alert('Vui lòng thêm sản phẩm trước khi chụp ảnh!');
+            return;
+        }
+
+        const btnImg = document.getElementById('btnImg');
+        btnImg.disabled = true;
+        btnImg.innerText = '⏳ Đang chụp ảnh...';
+
+        await new Promise(resolve => setTimeout(resolve, 150));
+        const state = prepareDOMForExport();
+
+        const invNo = document.getElementById('lblInvNo').value || 'PT';
+        const originalArea = document.getElementById('invoiceArea');
+        const MAX_ROWS_PER_PAGE = 10;
+
+        try {
+            if (rows.length <= MAX_ROWS_PER_PAGE) {
+                const canvas = await html2canvas(originalArea, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
+                });
+
+                const link = document.createElement('a');
+                link.download = `Hoa_Don_Phuong_Thao_Gift_${invNo}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            } else {
+                const totalPages = Math.ceil(rows.length / MAX_ROWS_PER_PAGE);
+
+                for (let page = 0; page < totalPages; page++) {
+                    const start = page * MAX_ROWS_PER_PAGE;
+                    const end = start + MAX_ROWS_PER_PAGE;
+                    const pageRows = rows.slice(start, end);
+
+                    const clone = originalArea.cloneNode(true);
+                    const cloneTbody = clone.querySelector('#invoiceTableBody');
+                    cloneTbody.innerHTML = '';
+
+                    pageRows.forEach(row => {
+                        cloneTbody.appendChild(row.cloneNode(true));
+                    });
+
+                    if (page < totalPages - 1) {
+                        const tfoot = clone.querySelector('tfoot');
+                        if (tfoot) tfoot.style.display = 'none';
+                        const footer = clone.querySelector('.invoice-footer');
+                        if (footer) footer.style.display = 'none';
+                    }
+
+                    clone.style.position = 'absolute';
+                    clone.style.left = '-9999px';
+                    clone.style.top = '0';
+                    clone.style.width = '210mm';
+                    document.body.appendChild(clone);
+
+                    const canvas = await html2canvas(clone, {
+                        scale: 3,
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const link = document.createElement('a');
+                    link.download = `Hoa_Don_Phuong_Thao_Gift_${invNo}_Trang_${page + 1}.png`;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    link.click();
+
+                    document.body.removeChild(clone);
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Có lỗi khi chụp ảnh hóa đơn!');
+        } finally {
+            restoreDOMAfterExport(state);
+            btnImg.disabled = false;
+            btnImg.innerText = '📸 Chụp Ảnh';
+        }
+    }
+
+    async function exportPDF() {
+        const tbody = document.getElementById('invoiceTableBody');
+        if (tbody.querySelectorAll('tr').length === 0) {
+            alert('Vui lòng thêm sản phẩm trước khi xuất PDF!');
+            return;
+        }
+
+        const btnPdf = document.getElementById('btnPdf');
+        btnPdf.disabled = true;
+        btnPdf.innerText = '⏳ Đang tạo PDF...';
+
+        await new Promise(resolve => setTimeout(resolve, 150));
+        const state = prepareDOMForExport();
+
+        const invNo = document.getElementById('lblInvNo').value || 'PT';
+        const area = document.getElementById('invoiceArea');
+
+        const opt = {
+            margin:       0,
+            filename:     `Hoa_Don_Phuong_Thao_Gift_${invNo}.pdf`,
+            image:        { type: 'jpeg', quality: 1.0 },
+            html2canvas:  { 
+                scale: 3, 
+                useCORS: true, 
+                allowTaint: true, 
+                logging: false,
+                imageTimeout: 15000,
+                scrollX: 0,
+                scrollY: 0
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.invoice-footer'] } 
+        };
+
+        try {
+            await html2pdf().set(opt).from(area).save();
+        } catch (err) {
+            console.error(err);
+            alert('Có lỗi khi tạo PDF. Vui lòng thử lại!');
+        } finally {
+            restoreDOMAfterExport(state);
+            btnPdf.disabled = false;
+            btnPdf.innerText = '📄 Xuất PDF';
+        }
+    }
+
+    window.onload = function() {
+        initCloudSync();
+        addNewRow();
+        addNewRow();
+        addNewRow();
+    };
+</script>
+
+</body>
+</html>
